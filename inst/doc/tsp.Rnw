@@ -1,0 +1,148 @@
+% \VignetteDepends{Biobase}
+% \VignetteIndexEntry{tspTutorial}
+% \VignetteKeywords{Top scoring pair}
+% \VignettePackage{tsp}
+\documentclass[11pt]{article}
+
+\usepackage{epsfig}
+\usepackage{latexsym}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsfonts}
+\usepackage{amsxtra}
+\usepackage{graphicx,subfigure}
+\usepackage{vmargin}
+
+
+
+\newcommand{\Robject}[1]{{\texttt{#1}}}
+\newcommand{\Rfunction}[1]{{\texttt{#1}}}
+\newcommand{\Rpackage}[1]{{\texttt{#1}}}
+\newcommand{\Rclass}[1]{{\texttt{#1}}}
+\newcommand{\Rmethod}[1]{{\texttt{#1}}}
+\newcommand{\Rfunarg}[1]{{\texttt{#1}}}
+
+\parindent 0in
+\setpapersize{USletter}
+\setmarginsrb{1truein}{0.5truein}{1truein}{0.5truein}{16pt}{30pt}{0pt}{20truept}
+\setlength{\emergencystretch}{2em}
+\usepackage{Sweave}
+\begin{document}
+
+\title{Bioconductor's \Rpackage{tspair} package}
+\author{Jeffrey Leek \\
+Department of Oncology \\
+Johns Hopkins University \\
+email: \texttt{jtleek@jhu.edu}}
+
+\maketitle
+\tableofcontents
+
+\section{Overview}
+
+The \Rpackage{tspair} package contains functions for calculating the top scoring pair for classification of high-dimensional data sets  \cite{geman:2004aa}. 
+
+A top scoring pair is a pair of genes whose relative ranks can be used to classify arrays according to a binary phenotype. A top scoring pair classifier has three advantages over standard classifiers: (1) the classifier is based on the relative ranks of genes and is more robust to normalization and preprocessing, (2) the classifier is based on a pair of genes and is likely to be more interpretable than a more complicated classifier, and (3) a classifier based on a small number of genes lends itself to diagnostic tests based on PCR that are both more rapid and cheaper than classifiers based on a large number of genes. 
+
+This document provides a tutorial for using the \texttt{tsp} package.  The package consists of the functions: \Rfunction{tspcalc} for identifying a top scoring pair based on a data matrix or expression set and a group variable, \Rfunction{tspplot} for plotting TSP objects,  \Rfunction{tspsig} for calculating significance of TSPs, and \Rfunction{tsp.predict} for predicting the outcomes of new arrays based on a previously calculated TSP.  As with any R package, detailed information on functions, their arguments and values, can be obtained from the help files. For instance, to view the help file for the function \Rfunction{tspcalc} within R, type \texttt{? tspcalc}.  Here we will demonstrate the use of the functions in the \Rpackage{tspair} package to analyze a simulated expression experiment. We will also show how to calculate p-values for significance. \\
+
+\section{Simulated Example}
+
+We demonstrate the functionality of this package using simulated gene expression data. The data used in this analysis is included with the \Rpackage{tspair} package as the dataset \texttt{tspdata}. This data set consists of simulated data (the variable {\it dat}) for 1000 genes (in rows) and 50 arrays (in columns). The first 25 arrays correspond to the first group and the second 25 correspond to the second. A second variable gives the group indicator ({\it grp}) and a third variable is an expression set combining these two elements ({\it eSet1}). 
+
+To load the data set type \texttt{data(tspdata)}, and to view a description of this data type \texttt{? tspdata}.   
+
+<<>>=
+library(tspair)
+data(tspdata)
+dim(dat)
+@
+
+
+\section{The \Rfunction{tspcalc} function}
+
+The \Rfunction{tspcalc} function computes all pairs in the gene expression matrix achieving the top score described in Geman and colleagues (2004) \cite{geman:2004aa}, described briefly below. In the expression matrix, genes should be in rows and arrays in columns. Generally, the number of genes is much larger than the number of arrays.  First we calculate the top scoring pair using the simulated gene expression matrix and the group indicator:
+
+<<>>=
+tsp1 <- tspcalc(dat,grp)
+tsp1
+@
+
+The function \Rfunction{tspcalc} returns a tsp object. A tsp object consists of the following elements: {\it index} - an index giving the rows of the gene expression matrix that define a top scoring pair. If index has more than one row, each row corresponds to a different pair achieving the top score, {\it score} - the top scoring pair score, defined as: $|{\rm Pr}(X_i > Y_i | {\rm Class\; 1}) - {\rm Pr}(X_i > Y_i | {\rm Class\; 2})|$ where $X_i$ is the gene expression measurement for the first gene on array $i$ and $Y_i$ is the gene expression measurement for the second gene of the pair on array $i$, {\it grp} - the group indicator variable converted to a binary (0-1) variable, {\it gene1} - the data for all top scoring pairs concatenated in rows, and {\it labels} the group labels from the user-defined {\it grp} variable. If more than one top scoring pair achieves the same maximum score, then the unique TSP is determined by the tie-breaking score described in \cite{tan:2005aa}. Briefly, each expression value is ranked {\it within its array}, then a rank difference score is calculated for each pair of genes. 
+
+It is also possible to calculate the top scoring pair from an expression set object, using either a group indicator variable as with the data matrix, or by indicating a column in the pData of the expression set. 
+
+<<>>=
+tsp2 <- tspcalc(eSet1,grp)
+tsp3 <- tspcalc(eSet1,1)
+@
+
+\section{The \Rfunction{tspplot} function}
+
+The \Rfunction{tspplot} accepts a tsp object and returns a TSP plot. The figure plots the expression for the first gene in the TSP pair versus the expression for the second gene in the TSP pair across arrays. The user defined groups are plotted in the colors red and blue. The score for the pair is shown across the top of each plot. If there is more than one TSP, hitting return will cycle from one TSP to the next. 
+
+<<fig=TRUE,include=FALSE>>=
+tspplot(tsp1)
+@
+
+
+\section{The \Rfunction{tspsig} function}
+
+The score from \Rfunction{tspcalc} can be interpreted as  the average of sensitivity and specificity of the classifier in the data used to construct the TSP. But to get a legitimate measure of significance, some measure of uncertainty must be calculated using a permutation test, cross-validation, or application of the TSP to a new training set. Here we demonstrate how to use the functions in the \Rpackage{tspair} to calculate significance of a TSP.
+
+The function \Rfunction{tspsig} tests the null hypothesis that no TSP exists in the data set by permutation. To calculate the p-value, the group labels are permuted $B$ times and a null TSP score is calculated for each, the p-value is the total number of null TSP scores that exceed the observed TSP score plus one divided by $B + 1$. The function \Rfunction{tspsig} calculates the significance with a progress bar to indicate the time left in the calculation. 
+
+<<>>=
+out <- tspsig(dat,grp,B=50,seed=12355)
+out$p
+out$nullscores
+@
+
+
+\section{Prediction with the \Rpackage{tspair} package}
+
+A major of the advantage of the TSP approach is that predictions are very simple and can be easily calculated either by hand or using the built in functionality of the TSP package. The function \Rfunction{summary} can be used to tabulate the results from the TSP. Type \Rfunction{?summary.tsp} for details. 
+
+<<>>=
+summary(tsp1,printall=TRUE) 
+@
+
+In this example, the expression value for ``Gene5" is greater than the expression value for ``Gene338"  much more often for the diseased patients. So if new data were obtained, when the expression for ``Gene5" is greater than the expression for ``Gene338" we predict that the patient will be diseased. The \Rfunction{predict} can be used to predict group outcomes for new expression sets or data matrices. Type \Rfunction{?predict} for details. The user can input a TSP object and a new data matrix or expression set. The \Rfunction{predict} searches for the TSP gene names from the original \Rfunction{tspcalc} function call, and based on the   row names or featureNames of the new data set identifies the genes to use for prediction. The \Rfunction{predict} function returns a prediction for each new array. If the tsp object includes more than one TSP, the default is to predict from the TSP achieving the highest tie-breaking score from Tan and colleagues \cite{tan:2005aa}, but the user may elect to predict from any TSP. Here the variables \texttt{dat2} and \texttt{eSet2} represent independent data sets that can be used to predict outcomes based on the TSP classifier defined above. 
+
+<<>>==
+predict(tsp1,eSet2)
+predict(tsp1,dat2)
+@
+
+\section{Cross-validating the TSP approach}
+
+The cross-validation procedure described by Geman and colleagues \cite{geman:2004aa} re-calculates the TSP classifier within each cross-validation loop. This scheme can be intuitively though of as cross-validating the TSP procedure, instead of the specific TSP classifier. To calculate the leave one out cross-validation error, each sample is left out, the TSP classifier is calculated, and the group of the left out sample is predicted. The estimated cross-validation error is the faction of incorrect predictions. 
+
+<<>>=
+narrays <- ncol(dat)
+correct.prediction <- rep(TRUE,narrays)
+
+for(i in 1:narrays){
+	testdat <- dat[ , -i]
+	testgrp <- grp[-i]
+	tsptest <- tspcalc(testdat,testgrp)
+	prediction <- predict(tsptest,dat)[i]
+	correct.prediction[i] <- prediction == grp[i]
+}
+cv.error <- mean(correct.prediction==FALSE)
+cv.error
+@
+
+
+\bibliographystyle{plain}
+\bibliography{tsp}
+
+\newpage
+\begin{figure}[ht]
+  \begin{center}
+    \includegraphics[width=4in,height=4in]{tsp1}
+  \end{center}
+  \caption{A top scoring pair plot from the simulated example.}
+\end{figure}
+
+\end{document}

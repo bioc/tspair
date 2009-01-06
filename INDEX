@@ -1,0 +1,7 @@
+tspcalc		Estimate the top scoring pair from expression data
+tspplot		Graphical display of a tsp object
+ts.pair	 	Low-level tsp calculation function 
+tspsig		Calculate significance of a TSP classifier
+tspdata		A simulated gene expression data set and group indicator
+predict.tsp	An S3 prediction method for tsp objects
+summary.tsp 	An S3 summary method for tsp objects
