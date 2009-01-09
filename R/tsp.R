@@ -225,7 +225,7 @@ tspsig <- function(dat,grp,B=50,seed=NULL){
     score0[i] <- ts.pair(dat,sample(grp))$tspscore
     prog <- progressBar(i/B,prog)
   }
-  p <- (sum(score0 > score) + 1)/(length(score) + 1)
+  p <- (sum(score0 > score) + 1)/(B + 1)
   return(list(p = p,nullscores = score0))
 }
 
