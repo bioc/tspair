@@ -40,7 +40,7 @@ SEXP ctspair(SEXP Rdat, SEXP Rgrp)
   nProtected++;
   PROTECT(ntsp = allocVector(INTSXP,1));
   nProtected++;
-  PROTECT(ind = allocVector(INTSXP,m*m));
+  PROTECT(ind = allocVector(INTSXP,2*MAXTSP));
   nProtected++;
    
 
