@@ -220,10 +220,10 @@ tspsig <- function(dat,grp,B=50,seed=NULL){
   if(!is.null(seed)){set.seed(seed)}
   score <- ts.pair(dat,grp)$tspscore
   score0 <- rep(0,B)
-  prog <- progressBar()
+  prog <- txtProgressBar()
   for(i in 1:B){
     score0[i] <- ts.pair(dat,sample(grp))$tspscore
-    prog <- progressBar(i/B,prog)
+    setTxtProgressBar(prog, i/B)
   }
   p <- (sum(score0 > score) + 1)/(B + 1)
   return(list(p = p,nullscores = score0))
