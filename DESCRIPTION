@@ -1,6 +1,6 @@
 Package: tspair
 Title: Top Scoring Pairs for Microarray Classification
-Version: 1.38.0
+Version: 1.39.0
 Author: Jeffrey T. Leek <jtleek@jhu.edu>
 Description: These functions calculate the pair of genes that show the
         maximum difference in ranking between two user specified
